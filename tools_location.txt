@@ -1,0 +1,4 @@
+player_loc: Location(1, 1)
+dragon_loc: Location(6, 7)
+dungeon_loc: Location(1, 2)
+map_helper_loc: Location(1, 5)
