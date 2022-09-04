@@ -1,0 +1,5 @@
+player_loc: Location(2, 1)
+dragon_loc: Location(6, 8)
+dungeon_loc: Location(7, 4)
+map_helper_loc: Location(2, 8)
+(0, sniperarcher)

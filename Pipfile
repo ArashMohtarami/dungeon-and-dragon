@@ -6,6 +6,7 @@ name = "pypi"
 [packages]
 pyfiglet = "*"
 autopep8 = "*"
+pyment = "*"
 
 [dev-packages]
 

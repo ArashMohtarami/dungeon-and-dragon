@@ -1,5 +1,3 @@
-import re
-import pathlib
 import logging
 
 from time import sleep
@@ -14,6 +12,7 @@ import pyfiglet
 from board.flat import Map
 from board.location import Location
 from helper.utils import clear_screen
+from profile.create_user import CreateProfile
 from board.strange_code import StrangeCode
 
 from character.archer import (
@@ -68,8 +67,8 @@ class Game:
     _PLAY_AGAIN_MSG: str = "Do you want to play again ? [yes/no] : "
     _HIT_WALL_MSG: str = "** Walls are hard! Don't run into them! **"
     _LOSER_MSG: str = "** OH NO! The dragon got you! Better luck next time! **"
-    _DEBUG_MSG: str = "Do you want to play the game or test it ? [play/test] : " # noqa
-    _PLAY_SAVED_GAME_MSG: str = '> Do you want to play of your save game? [yes/no] ' # noqa
+    _DEBUG_MSG: str = "Do you want to play the game or test it ? [play/test] : "  # noqa
+    _PLAY_SAVED_GAME_MSG: str = '> Do you want to play of your save game? [yes/no] '  # noqa
     _DISTANCE_3_BLOCK: float = 4.26
     _DISTANCE_2_BLOCK: float = 2.82
     _DISTANCE_1_BLOCK: float = 1.41
@@ -187,6 +186,7 @@ class Game:
             "no",
             "n"
         ]
+
         while value.lower() not in _correct_command:
             clear_screen()
             print("> your value must be in ")
@@ -465,58 +465,52 @@ class Game:
         """
         return True if command == "yes" else False
 
-    def write_locations(self, object_loc: Tuple["Location"]) -> None:
-        """
-        write some locations in a file
+    def create_new_user(self) -> "CreateProfile":
+        """ create and save information of a new user """
+        username = input("Enter your user name : ").lower()
+        password = input("Enter your password : ")
+        user = CreateProfile(username, password)
+        user.username_validation()
+        user.password_validation()
+        user.write_userpass()
+        return user
 
-        Parameters
-        ----------
-        object_loc : Tuple[Location]
-        """
-        with open("tools_location.txt", "w") as save_file:
-            for i in range(len(object_loc)):
-                string = f"{self._OBJECTS_NAME[i]}: {object_loc[i]}\n"
-                save_file.write(string)
-
-    def is_save_file_exist(self) -> bool:
-        """check is a special file exist. """
-        return True if pathlib.Path("./tools_location.txt").is_file() else False # noqa
-
-    def insert_saved_location(self) -> List['Location']:
-        """
-        open a file and get some locations
-        """
-        with open("./tools_location.txt", "r") as f:
-            pattern = r'(\d), (\d)'
-            objects_loc = [
-                re.findall(pattern, loc,)[0]
-                for loc in f
-                ]
-            objects_loc = [
-                Location(int(loc[0]), int(loc[1]))
-                for loc in objects_loc
-                ]
-            return objects_loc
+    def insert_old_user(self) -> "CreateProfile":
+        """ insert an old user from dir : ./data/username.txt"""
+        username = input("Enter your user name : ").lower()
+        password = input("Enter your password : ")
+        user = CreateProfile(username, password)
+        user.userpass_validation()
+        return user
 
     def start(self) -> None:
         """ start game ... """
 
         dimension = self.intro()
-        character_type = self.character_intro()
-        character = self.create_character(character_type)
-        arash = character("Arash", 6) # noqa
         flat = Map(int(dimension))
         logging.info("the board was created.")
-        if self.is_save_file_exist():
+
+        self._command = input("are you a new player?[yes/no] : ")
+        if self._command == "yes":
+            user = self.create_new_user()
+            locs = flat.get_locations(4)
+            character_type, level = self.character_intro(), 0
+        else:
+            user = self.insert_old_user()
             self._command = input(self._PLAY_SAVED_GAME_MSG)
             if self._command == "yes":
-                locs = self.insert_saved_location()
+                print(user.read_from_file())
+                locs, character = user.read_from_file()
+                level = int(character[0])
+                character_type = character[1]
             else:
                 locs = flat.get_locations(4)
-        else:
-            locs = flat.get_locations(4)
+                character_type, level = self.character_intro(), 0
         player_loc, dragon_loc, dungeon_loc, map_helper_loc = locs
         logging.info("location of objects were inserted.")
+
+        character = self.create_character(character_type)
+        character_name = character(user.username, level)  # noqa
 
         clear_screen()
         self._command = input(self._DEBUG_MSG).lower()
@@ -563,7 +557,8 @@ class Game:
                 print(self._SAVE_MSG)
                 self._command = input('> ').lower()
                 if self.is_save_on(self._command):
-                    self.write_locations(objects_loc)
+                    user.write_in_file(
+                        objects_loc, character_name.experience, character_type)
                 print(self._ENDING_MSG)
                 logging.info("player exited the game.")
                 break
